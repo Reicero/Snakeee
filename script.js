@@ -1,16 +1,20 @@
-const header = document.getElementById('header');
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-
 const box = 20;
-let snake = [{ x: 0, y: 0 }];
+let snake = [{ x: getRandomPosition().x, y: getRandomPosition().y }];
+let dx = 0, dy = 0;  // Le serpent ne bouge pas au début
 let food = getRandomPosition();
-let dx = 0, dy = 0;
 let gameInterval;
-let obstacles = [], movingObstacles = [];
-let foodEaten = 0, snakeSpeed = 100, level = 1;
+let foodEaten = 0;
+let snakeSpeed = 100;  // Vitesse initiale
+let level = 1;
+let isGameRunning = false;  // Indicateur de démarrage du jeu
 
+// Démarrage du jeu
 document.addEventListener('keydown', handleDirectionChange);
+
+// Affiche immédiatement le serpent et la nourriture au début
+drawElements();
 startGame();
 
 function startGame() {
@@ -18,46 +22,51 @@ function startGame() {
     gameInterval = setInterval(updateGame, snakeSpeed);
 }
 
+// Mise à jour du jeu
 function updateGame() {
+    if (!isGameRunning) return;  // Le jeu ne démarre que quand une direction est choisie
+
     clearCanvas();
     moveSnake();
-    moveObstacles();
     drawElements();
+    updateScore();
 }
 
 function clearCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 }
 
+// Dessine le serpent et la nourriture
 function drawElements() {
     drawSnake();
     drawFood();
-    drawObstacles('black', obstacles);
-    drawObstacles('blue', movingObstacles);
-    updateScore();
+    drawGameBorder();
 }
 
 function drawSnake() {
     ctx.fillStyle = 'green';
-    snake.forEach(part => ctx.fillRect(part.x, part.y, box, box));
+    snake.forEach(part => {
+        ctx.fillRect(part.x, part.y, box, box);
+    });
 }
 
 function drawFood() {
     ctx.fillStyle = 'red';
-    ctx.beginPath();
-    ctx.arc(food.x + box / 2, food.y + box / 2, box / 2, 0, Math.PI * 2);
-    ctx.fill();
+    ctx.fillRect(food.x, food.y, box, box);
 }
 
-function drawObstacles(color, obsArray) {
-    ctx.fillStyle = color;
-    obsArray.forEach(obstacle => ctx.fillRect(obstacle.x, obstacle.y, box, box));
+function drawGameBorder() {
+    ctx.strokeStyle = 'white';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(0, 0, canvas.width, canvas.height);
 }
 
 function updateScore() {
-    header.innerHTML = `${foodEaten}🔴 Niveau: ${level}`;
+    const header = document.getElementById('header');
+    header.innerHTML = `${foodEaten} 🔴 Niveau: ${level}`;
 }
 
+// Déplace le serpent
 function moveSnake() {
     const head = { x: snake[0].x + dx, y: snake[0].y + dy };
 
@@ -70,106 +79,60 @@ function moveSnake() {
     if (head.x === food.x && head.y === food.y) {
         foodEaten++;
         handleLevelProgression();
-        food = getRandomValidPosition();
+        food = getRandomPosition();
     } else {
         snake.pop();
     }
 }
 
-function handleLevelProgression() {
-    switch (foodEaten) {
-        case 2: level = 2; increaseSnakeSpeed(); break;
-        case 4: level = 3; generateObstacles(obstacles, 5); break;
-        case 6: level = 4; generateObstacles(movingObstacles, 5, true); break;
+// Gère les directions
+function handleDirectionChange(event) {
+    const direction = event.key.replace('Arrow', '');
+    switch (direction) {
+        case 'Up': if (dy === 0) { dx = 0; dy = -box; isGameRunning = true; } break;
+        case 'Down': if (dy === 0) { dx = 0; dy = box; isGameRunning = true; } break;
+        case 'Left': if (dx === 0) { dx = -box; dy = 0; isGameRunning = true; } break;
+        case 'Right': if (dx === 0) { dx = box; dy = 0; isGameRunning = true; } break;
     }
 }
 
+// Vérifie les collisions
 function isCollision(position) {
     return (
-        isCollisionWithWall(position) || isCollisionWithSelf(position) ||
-        isPositionOnArray(position, obstacles) || isPositionOnArray(position, movingObstacles)
-    );
-}
-
-function isCollisionWithWall(position) {
-    return (
         position.x < 0 || position.x >= canvas.width ||
-        position.y < 0 || position.y >= canvas.height
+        position.y < 0 || position.y >= canvas.height ||
+        snake.some((part, index) => index !== 0 && part.x === position.x && part.y === position.y)
     );
 }
 
-function isCollisionWithSelf(position) {
-    return snake.some((part, index) => index !== 0 && part.x === position.x && part.y === position.y);
+// Réinitialise le jeu
+function resetGame() {
+    alert('Game Over');
+    snake = [{ x: getRandomPosition().x, y: getRandomPosition().y }];  // Réapparition aléatoire du serpent
+    dx = 0;
+    dy = 0;
+    foodEaten = 0;
+    level = 1;
+    snakeSpeed = 100;  // Vitesse initiale après réinitialisation
+    food = getRandomPosition();  // Réapparition aléatoire de la nourriture
+    isGameRunning = false;  // Le jeu ne démarre pas automatiquement
+    drawElements();  // Affiche les éléments avant que le jeu ne recommence
+    startGame();
 }
 
+// Augmente la difficulté
+function handleLevelProgression() {
+    if (foodEaten % 5 === 0) {
+        level++;
+        snakeSpeed = Math.max(50, snakeSpeed - 10);  // Réduit la vitesse jusqu'à un minimum de 50 ms
+        startGame();
+    }
+}
+
+// Génère une position aléatoire pour la nourriture
 function getRandomPosition() {
     return {
         x: Math.floor(Math.random() * (canvas.width / box)) * box,
         y: Math.floor(Math.random() * (canvas.height / box)) * box
     };
-}
-
-function getRandomValidPosition() {
-    let position;
-    do {
-        position = getRandomPosition();
-    } while (isPositionOnArray(position, snake) || isPositionOnArray(position, obstacles) || isPositionOnArray(position, movingObstacles));
-    return position;
-}
-
-function isPositionOnArray(position, array) {
-    return array.some(item => item.x === position.x && item.y === position.y);
-}
-
-function generateObstacles(array, count, isMoving = false) {
-    array.length = 0;
-    for (let i = 0; i < count; i++) {
-        let position = getRandomValidPosition();
-        if (isMoving) {
-            let direction = Math.random() < 0.5 ? 'horizontal' : 'vertical';
-            array.push({ ...position, direction, steps: 0 });
-        } else {
-            array.push(position);
-        }
-    }
-}
-
-function moveObstacles() {
-    movingObstacles.forEach(obstacle => {
-        if (obstacle.direction === 'horizontal') {
-            obstacle.x += (obstacle.steps < 3 ? box : -box);
-        } else {
-            obstacle.y += (obstacle.steps < 3 ? box : -box);
-        }
-        obstacle.steps = (obstacle.steps + 1) % 6;
-    });
-}
-
-function resetGame(keepObstacles = false) {
-    snake = [{ x: 0, y: 0 }];
-    dx = 0;
-    dy = 0;
-    foodEaten = 0;
-    snakeSpeed = 100;
-    level = 1;
-    if (!keepObstacles) {
-        obstacles = [];
-        movingObstacles = [];
-    }
-    food = getRandomValidPosition();
-    if (keepObstacles) {
-        generateObstacles(obstacles, 5);
-        generateObstacles(movingObstacles, 3, true);
-    }
-    startGame();
-}
-
-function handleDirectionChange(event) {
-    const direction = event.key.replace('Arrow', '');
-    switch (direction) {
-        case 'Up': if (dy === 0) { dx = 0; dy = -box; } break;
-        case 'Down': if (dy === 0) { dx = 0; dy = box; } break;
-        case 'Left': if (dx === 0) { dx = -box; dy = 0; } break;
-        case 'Right': if (dx === 0) { dx = box; dy = 0; } break;
-    }
 }

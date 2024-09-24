@@ -9,14 +9,13 @@ function getRandomValidPosition() {
     let position;
     do {
         position = getRandomPosition();
-    } while (isPositionOnArray(position, snake) || isPositionOnArray(position, obstacles) || isPositionOnArray(position, movingObstacles));
+    } while (isPositionOnArray(position, snake)); // Vérifie seulement par rapport au serpent
     return position;
 }
 
 function isCollision(position) {
     return (
-        isCollisionWithWall(position) || isCollisionWithSelf(position) ||
-        isPositionOnArray(position, obstacles) || isPositionOnArray(position, movingObstacles)
+        isCollisionWithWall(position) || isCollisionWithSelf(position)
     );
 }
 
@@ -33,25 +32,6 @@ function isCollisionWithSelf(position) {
 
 function isPositionOnArray(position, array) {
     return array.some(item => item.x === position.x && item.y === position.y);
-}
-
-function resetGame(keepObstacles = false) {
-    snake = [{ x: 0, y: 0 }];
-    dx = 0;
-    dy = 0;
-    foodEaten = 0;
-    snakeSpeed = 100;
-    level = 1;
-    if (!keepObstacles) {
-        obstacles = [];
-        movingObstacles = [];
-    }
-    food = getRandomValidPosition();
-    if (keepObstacles) {
-        generateObstacles(obstacles, 5);
-        generateObstacles(movingObstacles, 3, true);
-    }
-    startGame();
 }
 
 function increaseSnakeSpeed() {

@@ -1,14 +1,26 @@
-const header = document.getElementById('header');
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-
 const box = 20;
-let snake = [{ x: 0, y: 0 }];
-let food = getRandomPosition();
-let dx = 0, dy = 0;
+let snake = [{ x: 200, y: 200 }];
+let dx = box, dy = 0;  // Direction initiale du serpent (vers la droite)
+let food = getRandomValidPosition();
 let gameInterval;
-let obstacles = [], movingObstacles = [];
-let foodEaten = 0, snakeSpeed = 100, level = 1;
+let foodEaten = 0;
+let snakeSpeed = 100;
+let level = 1;
 
 document.addEventListener('keydown', handleDirectionChange);
 startGame();
+
+function startGame() {
+    clearInterval(gameInterval);
+    gameInterval = setInterval(updateGame, snakeSpeed);
+}
+
+function updateGame() {
+    clearCanvas();
+    moveSnake();
+    drawElements();
+}
+
+function clearCanvas() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+}

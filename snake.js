@@ -30,11 +30,3 @@ function handleDirectionChange(event) {
         case 'Right': if (dx === 0) { dx = box; dy = 0; } break;
     }
 }
-
-function handleLevelProgression() {
-    switch (foodEaten) {
-        case 2: level = 2; increaseSnakeSpeed(); break;
-        case 4: level = 3; generateObstacles(obstacles, 5); break;
-        case 6: level = 4; generateObstacles(movingObstacles, 5, true); break;
-    }
-}
